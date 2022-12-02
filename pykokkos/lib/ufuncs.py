@@ -980,8 +980,7 @@ def divide(viewA, viewB):
     if viewA.rank() == 2:
         out = pk.View(viewA.shape, pk.double)
         pk.parallel_for(
-            viewA.shape[0],
-            pk.TeamPolicy(viewA.shape[0], pk.AUTO)
+            pk.TeamPolicy(viewA.shape[0], pk.AUTO),
             divide_impl_team_2d_1d_double,
             viewA=viewA,
             viewB=viewB,

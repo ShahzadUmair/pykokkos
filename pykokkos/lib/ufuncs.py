@@ -981,7 +981,8 @@ def divide(viewA, viewB):
         out = pk.View(viewA.shape, pk.double)
         pk.parallel_for(
             viewA.shape[0],
-            divide_impl_2d_1d_double,
+            pk.TeamPolicy(viewA.shape[0], pk.AUTO)
+            divide_impl_team_2d_1d_double,
             viewA=viewA,
             viewB=viewB,
             out=out)

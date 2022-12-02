@@ -172,7 +172,7 @@ def pk_2d_res(fn):
     for s in mem:
         arr = [[j for j in range(10)] for i in range(s)]
         np_arr = np.asarray(arr, dtype=np.double)
-        pk_arr = pk.View([s, 10], pk.double)
+        pk_arr = pk.View([s, 10], pk.double, space=pk.MemorySpace.CudaSpace)
         pk_arr[:] = np_arr
 
         pk_fn = getattr(pk, fn[0])

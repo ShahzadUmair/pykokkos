@@ -924,7 +924,6 @@ def matmul(viewA, viewB):
 
     elif str(viewA.dtype) == "DataType.float" and str(viewB.dtype) == "DataType.float":
         return pk.parallel_reduce(viewA.shape[0], matmul_impl_1d_float, viewA=viewA, viewB=viewB)
-    
     else:
         raise RuntimeError("Incompatible Types")
 
@@ -943,6 +942,16 @@ def divide_impl_1d_float(tid: int, viewA: pk.View1D[pk.float], viewB: pk.View1D[
 def divide_impl_2d_1d_double(tid: int, viewA: pk.View2D[pk.double], viewB: pk.View1D[pk.double], out: pk.View2D[pk.double]):
     for i in range(viewA.extent(1)):
         out[tid][i] = viewA[tid][i] / viewB[i % viewB.extent(0)]
+
+@pk.workunit
+def divide_impl_team_2d_1d_double(team: pk.TeamMember, viewA: pk.View2D[pk.double], viewB: pk.View1D[pk.double], out: pk.View2D[pk.double]):
+    n: int = team.league_rank()
+
+    def team_for(i: int):
+        out[n][i] = viewA[n][i] / viewB[i % viewB.extent(0)]
+
+    pk.parallel_for(pk.TeamThreadRange(team, viewA.extent(1)), team_for)
+
 
 
 def divide(viewA, viewB):

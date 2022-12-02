@@ -34,6 +34,18 @@ def sum_axis0_impl_1d_double(tid: int, viewA: pk.View2D[pk.double], out: pk.View
 
 
 @pk.workunit
+def sum_team_axis0_impl_1d_double(team: pk.TeamMember, viewA: pk.View2D[pk.double], out: pk.View1D[pk.double]):
+    n: int = team.league_rank()
+    
+    out[n] = 0
+
+    def team_for(i :int):
+        out[n] += viewA[i][n]
+
+    pk.parallel_for(pk.TeamThreadRange(team, viewA.extent(0)), team_for)
+
+
+@pk.workunit
 def sum_axis1_impl_1d_double(tid: int, viewA: pk.View2D[pk.double], out: pk.View1D[pk.double]):
     out[tid] = 0
     for i in range(viewA.extent(1)):
@@ -44,7 +56,7 @@ def sum(viewA, axis=None):
     if axis is not None:
         if axis == 0:
             out = pk.View([viewA.shape[1]], pk.double)
-            pk.parallel_for(viewA.shape[1], sum_axis0_impl_1d_double, viewA=viewA, out=out)
+            pk.parallel_for(pk.TeamPolicy(viewA.shape[1], "auto"), sum_team_axis0_impl_1d_double, viewA=viewA, out=out)
             return out
         else:
             out = pk.View([viewA.shape[0]], pk.double)

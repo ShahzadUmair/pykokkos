@@ -763,7 +763,6 @@ def sign(view):
 def add_impl_1d_double(tid: int, viewA: pk.View1D[pk.double], viewB: pk.View1D[pk.double], out: pk.View1D[pk.double], ):
     out[tid] = viewA[tid] + viewB[tid % viewB.extent(0)]
 
-
 @pk.workunit
 def add_impl_1d_float(tid: int, viewA: pk.View1D[pk.float], viewB: pk.View1D[pk.float], out: pk.View1D[pk.float]):
     out[tid] = viewA[tid] + viewB[tid]
@@ -773,25 +772,7 @@ def add_impl_2d_1d_double(tid: int, viewA: pk.View2D[pk.double], viewB: pk.View1
     for i in range(viewA.extent(1)):
         out[tid][i] = viewA[tid][i] + viewB[i % viewB.extent(0)]
 
-
 def add(viewA, viewB):
-    """
-    Sums positionally corresponding elements
-    of viewA with elements of viewB
-
-    Parameters
-    ----------
-    viewA : pykokkos view
-            Input view.
-    viewB : pykokkos view
-            Input view.
-
-    Returns
-    -------
-    out : pykokkos view
-           Output view.
-
-    """
     if not isinstance(viewB, pk.View):
         view_temp = pk.View([1], pk.double)
         view_temp[0] = viewB
@@ -799,30 +780,15 @@ def add(viewA, viewB):
 
     if viewA.rank() == 2:
         out = pk.View(viewA.shape, pk.double)
-        pk.parallel_for(
-            viewA.shape[0],
-            add_impl_2d_1d_double,
-            viewA=viewA,
-            viewB=viewB,
-            out=out)
+        pk.parallel_for(viewA.shape[0], add_impl_2d_1d_double, viewA=viewA, viewB=viewB, out=out)
 
     elif str(viewA.dtype) == "DataType.double" and str(viewB.dtype) == "DataType.double":
         out = pk.View([viewA.shape[0]], pk.double)
-        pk.parallel_for(
-            viewA.shape[0],
-            add_impl_1d_double,
-            viewA=viewA,
-            viewB=viewB,
-            out=out)
+        pk.parallel_for(viewA.shape[0], add_impl_1d_double, viewA=viewA, viewB=viewB, out=out)
 
     elif str(viewA.dtype) == "DataType.float" and str(viewB.dtype) == "DataType.float":
         out = pk.View([viewA.shape[0]], pk.float)
-        pk.parallel_for(
-            viewA.shape[0],
-            add_impl_1d_float,
-            viewA=viewA,
-            viewB=viewB,
-            out=out)
+        pk.parallel_for(viewA.shape[0], add_impl_1d_float, viewA=viewA, viewB=viewB, out=out)
     else:
         raise RuntimeError("Incompatible Types")
     return out
@@ -949,38 +915,16 @@ def matmul_impl_1d_float(tid: int, acc: pk.Acc[pk.float], viewA: pk.View1D[pk.fl
     acc += viewA[tid] * viewB[0][tid]
 
 def matmul(viewA, viewB):
-    """
-    1D Matrix Multiplication of compatible views
-
-    Parameters
-    ----------
-    viewA : pykokkos view
-            Input view.
-    viewB : pykokkos view
-            Input view.
-
-    Returns
-    -------
-    Float/Double
-        1D Matmul result
-
-    """
     if len(viewA.shape) != 1 or viewA.shape[0] != viewB.shape[0]:
         raise RuntimeError(
             "Input operand 1 has a mismatch in its core dimension (Size {} is different from {})".format(viewA.shape[0], viewB.shape[0]))
 
     if str(viewA.dtype) == "DataType.double" and str(viewB.dtype) == "DataType.double":
-        return pk.parallel_reduce(
-            viewA.shape[0],
-            matmul_impl_1d_double,
-            viewA=viewA,
-            viewB=viewB)
+        return pk.parallel_reduce(viewA.shape[0], matmul_impl_1d_double, viewA=viewA, viewB=viewB)
+
     elif str(viewA.dtype) == "DataType.float" and str(viewB.dtype) == "DataType.float":
-        return pk.parallel_reduce(
-            viewA.shape[0],
-            matmul_impl_1d_float,
-            viewA=viewA,
-            viewB=viewB)
+        return pk.parallel_reduce(viewA.shape[0], matmul_impl_1d_float, viewA=viewA, viewB=viewB)
+    
     else:
         raise RuntimeError("Incompatible Types")
 
@@ -2024,41 +1968,15 @@ def fmax_impl_1d_float(tid: int, viewA: pk.View1D[pk.float], viewB: pk.View1D[pk
 
 
 def fmax(viewA, viewB):
-    """
-    Return the element-wise fmax.
-
-    Parameters
-    ----------
-    viewA : pykokkos view
-            Input view.
-    viewB : pykokkos view
-            Input view.
-
-    Returns
-    -------
-    out : pykokkos view
-           Output view.
-
-    """
     if len(viewA.shape) > 1 or len(viewB.shape) > 1:
         raise NotImplementedError("fmax() ufunc only supports 1D views")
     if str(viewA.dtype) == "DataType.double" and str(viewB.dtype) == "DataType.double":
         out = pk.View([viewA.shape[0]], pk.double)
-        pk.parallel_for(
-            viewA.shape[0],
-            fmax_impl_1d_double,
-            viewA=viewA,
-            viewB=viewB,
-            out=out)
+        pk.parallel_for(viewA.shape[0], fmax_impl_1d_double, viewA=viewA, viewB=viewB, out=out)
 
     elif str(viewA.dtype) == "DataType.float" and str(viewB.dtype) == "DataType.float":
         out = pk.View([viewA.shape[0]], pk.float)
-        pk.parallel_for(
-            viewA.shape[0],
-            fmax_impl_1d_float,
-            viewA=viewA,
-            viewB=viewB,
-            out=out)
+        pk.parallel_for(viewA.shape[0], fmax_impl_1d_float, viewA=viewA, viewB=viewB, out=out)
     else:
         raise RuntimeError("Incompatible Types")
     return out
@@ -2297,10 +2215,19 @@ def in1d(viewA, viewB):
 
 
 @pk.workunit
-def transpose_impl_2d_double(tid: int, view: pk.View2D[pk.double], out: pk.View2D[pk.double]):
-    for i in range(view.extent(1)):
-        out[i][tid] = view[tid][i]
+def transpose_impl_2d_double(
+        team: pk.TeamMember,
+        view: pk.View2D[pk.double],
+        out: pk.View2D[pk.double]):
+    
+    n: int = team.league_rank()
 
+    def team_for(i: int):
+        out[i][n] = view[n][i]
+    
+    pk.parallel_for(
+        pk.TeamThreadRange(team, view.extent(1)),
+        team_for)
 
 def transpose(view):
     if view.rank() == 1:
@@ -2309,10 +2236,24 @@ def transpose(view):
     if view.rank() == 2:
         if str(view.dtype) == "DataType.double":
             out = pk.View(view.shape[::-1], pk.double)
-            pk.parallel_for(view.shape[0], transpose_impl_2d_double, view=view, out=out)
+            pk.parallel_for(
+                pk.TeamPolicy(view.shape[0], pk.AUTO),
+                transpose_impl_2d_double,
+                view=view,
+                out=out)
             return out
     
     raise RuntimeError("Transpose supports 2D views only")
+
+def main():
+    pk.set_default_space(pk.ExecutionSpace.OpenMP)
+
+    a: pk.View2D[pk.double] = pk.View([10, 5], dtype=pk.double)
+
+    a.fill(1)
+
+    transpose(a)
+
 
 
 @pk.workunit
